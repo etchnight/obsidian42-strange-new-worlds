@@ -42,7 +42,7 @@ const context = await esbuild.context({
   jsxFragment: 'Fragment',
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
-  outfile: 'build/main.js',
+  outfile: 'main.js',
 });
 
 if (prod) {

@@ -3,6 +3,8 @@
 import { type CachedMetadata, type HeadingCache, type Pos, type TFile, parseLinktext, stripHeading } from "obsidian";
 import type SNWPlugin from "./main";
 import type { TransformedCache } from "./types";
+import { getAllBacklinkKeysForHeading } from "./headingHierarchy";
+import { setCacheReference } from "./cacheManager";
 
 let indexedReferences = new Map();
 let lastUpdateToReferences = 0;
@@ -10,6 +12,7 @@ let plugin: SNWPlugin;
 
 export function setPluginVariableForIndexer(snwPlugin: SNWPlugin) {
 	plugin = snwPlugin;
+	setCacheReference(cacheCurrentPages);
 }
 
 export function getIndexedReferences() {
@@ -50,16 +53,38 @@ export const getLinkReferencesForFile = (file: TFile, cache: CachedMetadata) => 
 				// if the file has a property snw-index-exclude set to true, exclude it from the index
 				if (plugin.app.metadataCache.getFileCache(tfileDestination)?.frontmatter?.["snw-index-exclude"] === true) continue;
 
-				const linkWithFullPath = (tfileDestination ? tfileDestination.path + subpath : path).toLocaleUpperCase();
-				indexedReferences.set(linkWithFullPath, [
-					...(indexedReferences.get(linkWithFullPath) || []),
-					{
-						realLink: ref.link,
-						reference: ref,
-						resolvedFile: tfileDestination,
-						sourceFile: file,
-					},
-				]);
+				const referenceEntry = {
+					realLink: ref.link,
+					reference: ref,
+					resolvedFile: tfileDestination,
+					sourceFile: file,
+				};
+
+				// Check if this is a heading link (not a block reference)
+				if (subpath.startsWith("#") && !subpath.startsWith("#^")) {
+					// Get all backlink keys for this heading (including parent headings)
+					const destinationHeadings = plugin.app.metadataCache.getFileCache(tfileDestination)?.headings;
+					const allKeys = getAllBacklinkKeysForHeading(
+						tfileDestination.path.toLocaleUpperCase(),
+						subpath,
+						destinationHeadings,
+					);
+
+					// Add reference to all relevant heading keys
+					for (const key of allKeys) {
+						indexedReferences.set(key, [
+							...(indexedReferences.get(key) || []),
+							referenceEntry,
+						]);
+					}
+				} else {
+					// Non-heading link (file link or block reference)
+					const linkWithFullPath = (tfileDestination ? tfileDestination.path + subpath : path).toLocaleUpperCase();
+					indexedReferences.set(linkWithFullPath, [
+						...(indexedReferences.get(linkWithFullPath) || []),
+						referenceEntry,
+					]);
+				}
 			} else {
 				// Null if it is a ghost file link, Create Ghost link
 				const link = ref.link.toLocaleUpperCase();

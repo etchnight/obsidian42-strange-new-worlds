@@ -23,6 +23,7 @@ import ReferenceGutterExtension, { setPluginVariableForCM6Gutter } from "./view-
 import { setPluginVariableForHtmlDecorations, updateAllSnwLiveUpdateReferencesDebounce } from "./view-extensions/htmlDecorations";
 import { InlineReferenceExtension, setPluginVariableForCM6InlineReferences } from "./view-extensions/references-cm6";
 import markdownPreviewProcessor, { setPluginVariableForMarkdownPreviewProcessor } from "./view-extensions/references-preview";
+import { invalidateCacheForFileAndLinks, setPluginVariableForCacheManager, clearAllCache } from "./cacheManager";
 
 export const UPDATE_DEBOUNCE = 200;
 
@@ -55,6 +56,7 @@ export default class SNWPlugin extends Plugin {
 		setPluginVariableForMarkdownPreviewProcessor(this);
 		setPluginVariableForCM6InlineReferences(this);
 		setPluginVariableForUIC(this);
+		setPluginVariableForCacheManager(this);
 
 		window.snwAPI = this.snwAPI; // API access to SNW for Templater, Dataviewjs and the console debugger
 
@@ -70,6 +72,7 @@ export default class SNWPlugin extends Plugin {
 		//Build the full index of the vault of references
 		const indexFullUpdateDebounce = debounce(
 			() => {
+				clearAllCache();
 				buildLinksAndReferences();
 				updateHeadersDebounce();
 				updatePropertiesDebounce();
@@ -84,6 +87,7 @@ export default class SNWPlugin extends Plugin {
 			async (file: TFile, data: string, cache: CachedMetadata) => {
 				await removeLinkReferencesForFile(file);
 				getLinkReferencesForFile(file, cache);
+				invalidateCacheForFileAndLinks(file, cache);
 				updateHeadersDebounce();
 				updatePropertiesDebounce();
 				updateAllSnwLiveUpdateReferencesDebounce();
