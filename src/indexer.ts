@@ -4,7 +4,6 @@ import { type CachedMetadata, type HeadingCache, type Pos, type TFile, parseLink
 import type SNWPlugin from "./main";
 import type { TransformedCache } from "./types";
 import { getAllBacklinkKeysForHeading } from "./headingHierarchy";
-import { setCacheReference } from "./cacheManager";
 
 let indexedReferences = new Map();
 let lastUpdateToReferences = 0;
@@ -12,7 +11,6 @@ let plugin: SNWPlugin;
 
 export function setPluginVariableForIndexer(snwPlugin: SNWPlugin) {
 	plugin = snwPlugin;
-	setCacheReference(cacheCurrentPages);
 }
 
 export function getIndexedReferences() {
